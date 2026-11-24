@@ -15,6 +15,7 @@
 
 global MatizLoader
 global MatizImport
+global MatizBundleRoot = getFilenamePath (getThisScriptFilename())
 
 struct MatizLoaderCore
 (
@@ -35,12 +36,6 @@ struct MatizLoaderCore
 	),
 
 	fn autoCheck = ((getIniSetting (cfgPath()) "Update" "Auto") != "false"),
-
-	fn mainPath =
-	(
-		local d = devPath()
-		if d != "" then (d + "\\src\\main.ms") else (currentDir() + "\\src\\main.ms")
-	),
 
 	fn readText f =
 	(
@@ -81,6 +76,28 @@ struct MatizLoaderCore
 		r
 	),
 
+	-- pasta do plugin que esta em uso: a mais nova entre a que veio no instalador e a baixada do GitHub
+	fn activeRoot =
+	(
+		local d = devPath()
+		if d != "" then d
+		else
+		(
+			local bun = MatizBundleRoot + "..\\plugin"
+			local cur = currentDir()
+			local hasBun = doesFileExist (bun + "\\src\\main.ms")
+			local hasCur = doesFileExist (cur + "\\src\\main.ms")
+			if hasBun and hasCur then
+			(
+				if isNewer (readText (cur + "\\version.txt")) (readText (bun + "\\version.txt")) then cur else bun
+			)
+			else if hasCur then cur
+			else bun
+		)
+	),
+
+	fn mainPath = ((activeRoot()) + "\\src\\main.ms"),
+
 	fn download url dest =
 	(
 		if doesFileExist dest do deleteFile dest
@@ -93,7 +110,7 @@ struct MatizLoaderCore
 	fn remoteVersion =
 	(
 		local tmp = (getDir #temp) + "\\matiz_version.txt"
-		local url = "https://raw.githubusercontent.com/" + (getRepo()) + "/" + branch + "/version.txt"
+		local url = "https://raw.githubusercontent.com/" + (getRepo()) + "/" + branch + "/version.txt?t=" + (timeStamp() as string)
 		if download url tmp then readText tmp else ""
 	),
 
@@ -140,7 +157,7 @@ struct MatizLoaderCore
 		if (devPath()) != "" do return "Modo desenvolvimento ativo (sem atualizacao)."
 		local remote = remoteVersion()
 		if remote == "" do return "Sem conexao ou repositorio nao encontrado."
-		local localV = readText (currentDir() + "\\version.txt")
+		local localV = readText ((activeRoot()) + "\\version.txt")
 		if localV != "" and not (isNewer remote localV) do return ("Voce ja esta na versao " + localV + ".")
 		if install() then
 		(
