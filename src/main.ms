@@ -471,6 +471,13 @@ struct ArchivaUICore
 (
 	fontColl = undefined,
 	fontTried = false,
+	errs = #(),
+
+	-- registra um erro sem interromper o resto
+	fn nt what =
+	(
+		append errs (what + ": " + (getCurrentException()))
+	),
 
 	fn col r g b = ((dotNetClass "System.Drawing.Color").FromArgb r g b),
 
@@ -498,80 +505,109 @@ struct ArchivaUICore
 		local f = undefined
 		local sz = size as float
 		try (if fontColl != undefined do f = dotNetObject "System.Drawing.Font" (fontColl.Families.GetValue 0) sz) catch ()
-		if f == undefined do f = dotNetObject "System.Drawing.Font" "Segoe UI Semibold" sz
+		if f == undefined do
+		(
+			try (f = dotNetObject "System.Drawing.Font" "Segoe UI Semibold" sz) catch ()
+		)
+		if f == undefined do
+		(
+			try (f = dotNetObject "System.Drawing.Font" "Segoe UI" sz) catch ()
+		)
 		f
 	),
 
 	fn styleButton b kind txt =
 	(
-		b.FlatStyle = (dotNetClass "System.Windows.Forms.FlatStyle").Flat
-		b.UseVisualStyleBackColor = false
-		b.TabStop = false
-		b.Cursor = (dotNetClass "System.Windows.Forms.Cursors").Hand
-		b.Text = ArchivaTr txt
+		local FS = undefined
+		try (FS = dotNetClass "System.Windows.Forms.FlatStyle") catch (nt "FlatStyle class")
+		try (b.FlatStyle = FS.Flat) catch (nt "FlatStyle")
+		try (b.UseVisualStyleBackColor = false) catch (nt "UseVisualStyleBackColor")
+		try (b.TabStop = false) catch (nt "TabStop")
+		try (b.Cursor = (dotNetClass "System.Windows.Forms.Cursors").Hand) catch (nt "Cursor")
+		try (b.Text = ArchivaTr txt) catch (nt "Text")
+
+		local fnt = undefined
+		local bg = undefined
+		local fg = undefined
+		local border = 0
+		local bcol = undefined
+		local hov = undefined
+		local dwn = undefined
 		case kind of
 		(
 			#primary:
 			(
-				b.Font = font 10.5
-				b.BackColor = col 240 230 212
-				b.ForeColor = col 38 21 12
-				b.FlatAppearance.BorderSize = 0
-				b.FlatAppearance.MouseOverBackColor = col 247 238 222
-				b.FlatAppearance.MouseDownBackColor = col 221 205 178
+				fnt = font 10.5
+				bg = col 240 230 212
+				fg = col 38 21 12
+				hov = col 247 238 222
+				dwn = col 221 205 178
 			)
 			#secondary:
 			(
-				b.Font = font 9.5
-				b.BackColor = col 36 31 27
-				b.ForeColor = col 241 233 220
-				b.FlatAppearance.BorderSize = 1
-				b.FlatAppearance.BorderColor = col 58 50 43
-				b.FlatAppearance.MouseOverBackColor = col 50 43 37
-				b.FlatAppearance.MouseDownBackColor = col 30 25 21
+				fnt = font 9.5
+				bg = col 36 31 27
+				fg = col 241 233 220
+				border = 1
+				bcol = col 58 50 43
+				hov = col 50 43 37
+				dwn = col 30 25 21
 			)
 			#header:
 			(
-				b.Font = font 9.5
-				b.BackColor = col 42 34 28
-				b.ForeColor = col 227 207 169
-				b.TextAlign = (dotNetClass "System.Drawing.ContentAlignment").MiddleLeft
-				b.Padding = dotNetObject "System.Windows.Forms.Padding" 10 0 0 0
-				b.FlatAppearance.BorderSize = 0
-				b.FlatAppearance.MouseOverBackColor = col 58 44 34
-				b.FlatAppearance.MouseDownBackColor = col 34 27 22
+				fnt = font 9.5
+				bg = col 42 34 28
+				fg = col 227 207 169
+				hov = col 58 44 34
+				dwn = col 34 27 22
 			)
-			#link:
+			default:
 			(
-				b.Font = font 9
-				b.BackColor = col 22 18 15
-				b.ForeColor = col 216 194 156
-				b.FlatAppearance.BorderSize = 0
-				b.FlatAppearance.MouseOverBackColor = col 22 18 15
-				b.FlatAppearance.MouseDownBackColor = col 22 18 15
+				fnt = font 9
+				bg = col 22 18 15
+				fg = col 216 194 156
+				hov = col 22 18 15
+				dwn = col 22 18 15
 			)
+		)
+		try (b.Font = fnt) catch (nt "Font")
+		try (b.BackColor = bg) catch (nt "BackColor")
+		try (b.ForeColor = fg) catch (nt "ForeColor")
+		if kind == #header do
+		(
+			try (b.TextAlign = (dotNetClass "System.Drawing.ContentAlignment").MiddleLeft) catch (nt "TextAlign")
+			try (b.Padding = dotNetObject "System.Windows.Forms.Padding" 10 0 0 0) catch (nt "Padding")
+		)
+		local fa = undefined
+		try (fa = b.FlatAppearance) catch (nt "FlatAppearance")
+		if fa != undefined do
+		(
+			try (fa.BorderSize = border) catch (nt "BorderSize")
+			if bcol != undefined do (try (fa.BorderColor = bcol) catch (nt "BorderColor"))
+			try (fa.MouseOverBackColor = hov) catch (nt "MouseOverBackColor")
+			try (fa.MouseDownBackColor = dwn) catch (nt "MouseDownBackColor")
 		)
 	),
 
 	fn styleLabel l txt size r g b =
 	(
-		l.AutoSize = false
-		l.Text = ArchivaTr txt
-		l.Font = font size
-		l.ForeColor = col r g b
-		l.BackColor = col 22 18 15
+		try (l.AutoSize = false) catch (nt "Label AutoSize")
+		try (l.Text = ArchivaTr txt) catch (nt "Label Text")
+		try (l.Font = font size) catch (nt "Label Font")
+		try (l.ForeColor = col r g b) catch (nt "Label ForeColor")
+		try (l.BackColor = col 22 18 15) catch (nt "Label BackColor")
 	),
 
 	fn styleLog tb =
 	(
-		tb.Multiline = true
-		tb.ReadOnly = true
-		tb.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
-		tb.ScrollBars = (dotNetClass "System.Windows.Forms.ScrollBars").Vertical
-		tb.BackColor = col 29 24 20
-		tb.ForeColor = col 241 233 220
-		tb.Font = font 9
-		tb.TabStop = false
+		try (tb.Multiline = true) catch (nt "Log Multiline")
+		try (tb.ReadOnly = true) catch (nt "Log ReadOnly")
+		try (tb.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None) catch (nt "Log BorderStyle")
+		try (tb.ScrollBars = (dotNetClass "System.Windows.Forms.ScrollBars").Vertical) catch (nt "Log ScrollBars")
+		try (tb.BackColor = col 29 24 20) catch (nt "Log BackColor")
+		try (tb.ForeColor = col 241 233 220) catch (nt "Log ForeColor")
+		try (tb.Font = font 9) catch (nt "Log Font")
+		try (tb.TabStop = false) catch (nt "Log TabStop")
 	)
 )
 
@@ -781,18 +817,28 @@ rollout MatizImportRollout "Archiva Import" width:300
 		ArchivaUI.styleLabel lblTitle "Archiva Import" 14 241 233 220
 		ArchivaUI.styleLabel lblVer ("v" + MatizImport.versionText() + "  -  importa^c^ao do SketchUp") 8.5 168 156 140
 
-		ArchivaUI.styleButton hdrImp #header ""
-		ArchivaUI.styleButton hdrTex #header ""
-		ArchivaUI.styleButton hdrLuz #header ""
-		ArchivaUI.styleButton btnImport #primary "IMPORTAR .3DS..."
-		ArchivaUI.styleButton btnCfg #secondary "Configura^c^oes de importa^c^ao..."
-		ArchivaUI.styleLog tbLog
-		ArchivaUI.styleLabel lblTex "Em breve: trocar os materiais do SketchUp pelos da sua biblioteca, pelo nome." 9 168 156 140
-		ArchivaUI.styleLabel lblLuz "Em breve." 9 168 156 140
-		ArchivaUI.styleButton btnUpdate #link "Verificar atualiza^c^oes"
+		try (ArchivaUI.styleButton hdrImp #header "") catch (ArchivaUI.nt "hdrImp")
+		try (ArchivaUI.styleButton hdrTex #header "") catch (ArchivaUI.nt "hdrTex")
+		try (ArchivaUI.styleButton hdrLuz #header "") catch (ArchivaUI.nt "hdrLuz")
+		try (ArchivaUI.styleButton btnImport #primary "IMPORTAR .3DS...") catch (ArchivaUI.nt "btnImport")
+		try (ArchivaUI.styleButton btnCfg #secondary "Configura^c^oes de importa^c^ao...") catch (ArchivaUI.nt "btnCfg")
+		try (ArchivaUI.styleLog tbLog) catch (ArchivaUI.nt "tbLog")
+		try (ArchivaUI.styleLabel lblTex "Em breve: trocar os materiais do SketchUp pelos da sua biblioteca, pelo nome." 9 168 156 140) catch (ArchivaUI.nt "lblTex")
+		try (ArchivaUI.styleLabel lblLuz "Em breve." 9 168 156 140) catch (ArchivaUI.nt "lblLuz")
+		try (ArchivaUI.styleButton btnUpdate #link "Verificar atualiza^c^oes") catch (ArchivaUI.nt "btnUpdate")
 
-		loadOpenState()
-		relayout()
+		try (loadOpenState()) catch (ArchivaUI.nt "loadOpenState")
+		try (relayout()) catch (ArchivaUI.nt "relayout")
+
+		-- se algo falhou, mostra aqui para eu conseguir corrigir
+		if ArchivaUI.errs.count > 0 do
+		(
+			local msg = "Avisos de interface:"
+			for x in ArchivaUI.errs do msg += "\r\n" + x
+			try (tbLog.Text = msg) catch ()
+			format "%\n" msg
+			ArchivaUI.errs = #()
+		)
 	)
 
 	on hdrImp Click s e do (secOpen[1] = not secOpen[1]; saveOpenState(); relayout())
