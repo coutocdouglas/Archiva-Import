@@ -1,40 +1,37 @@
 # Archiva Import
 
-Plugin para 3ds Max 2024+ que importa um `.3ds` do SketchUp e roda o fluxo completo com um clique:
+Plugin para 3ds Max 2024 ou mais novo. Importa um `.3ds` do SketchUp e roda o fluxo completo com um clique:
 
 Import → Collapse → Weld (0.001, configuravel) → Attach (all in one, Editable Poly) → Detach by ID (nome do material) → UVW Map Box 100×100×100 Real-World.
+
+## Instalar (uma vez)
+
+1. Baixe o instalador: [ArchivaImport_Setup.exe](download/ArchivaImport_Setup.exe)
+2. Feche o 3ds Max, de dois cliques no arquivo e siga os passos. Nao precisa de administrador.
+3. Abra o Max (com internet). Ele baixa o plugin sozinho.
+4. Em *Customize → Customize User Interface → Toolbars*, categoria **Archiva**, arraste **Archiva Import** para uma barra.
+
+O instalador vale para todas as versoes do Max (2024 em diante). Se voce ja tinha copiado o `ArchivaImport_Loader.ms` (ou `MatizImport_Loader.ms`) para a pasta `scripts\startup` de alguma versao, apague essa copia para nao carregar duas vezes.
+
+## Atualizar
+
+- **Automatico:** a cada abertura do Max, o plugin compara a versao do GitHub com a instalada e atualiza.
+- **Manual:** botao *Verificar atualizacoes* na janela.
+- **Publicar versao nova (para mim/quem mantem):** alterar o codigo, subir o numero em `version.txt` e enviar para `main`.
 
 ## Estrutura
 
 ```
-install/ArchivaImport_Loader.ms   carregador (instala 1x; baixa e atualiza o plugin)
-src/main.ms                     codigo do plugin (etapas, pipeline, interface)
-version.txt                     versao atual (o carregador compara com a instalada)
+install/ArchivaImport_Loader.ms  carregador (vai dentro do instalador)
+installer/                       arquivos para gerar o instalador (Inno Setup)
+download/ArchivaImport_Setup.exe instalador pronto
+src/main.ms                      codigo do plugin
+version.txt                      versao atual
 ```
 
-## Publicar no GitHub (uma vez)
+## Configuracao opcional
 
-1. Crie um repositorio **publico** (ex.: `matiz-import`) e envie estes arquivos na branch `main`.
-2. Em `install/ArchivaImport_Loader.ms`, troque `coutocdouglas/Archiva-Import` pelo seu repositorio
-   (ou crie o `.ini` descrito abaixo).
-
-> O codigo baixado do repositorio e executado dentro do seu Max. Proteja a conta do GitHub com 2FA.
-
-## Instalar no Max (uma vez por versao do Max)
-
-1. No Max, no Listener, rode `getDir #startupScripts` e copie `ArchivaImport_Loader.ms` para essa pasta.
-2. Reinicie o Max. O plugin e baixado para `getDir #userScripts` + `\MatizImport\current`.
-3. Em *Customize User Interface → Toolbars/Quads*, categoria **Archiva**, arraste **Archiva Import** para onde quiser.
-
-## Atualizar
-
-- **Automatico:** a cada abertura do Max o carregador compara `version.txt` do GitHub com a instalada.
-- **Manual:** botao *Verificar atualizacoes* na janela do plugin.
-- Para lancar uma versao nova: altere o codigo, suba o `version.txt` (ex.: `0.1.1`) e envie para `main`.
-
-## Configuracao
-
-Salva em `getDir #plugcfg` + `\MatizImport.ini` (nao e sobrescrita pelas atualizacoes):
+Arquivo `getDir #plugcfg` + `\MatizImport.ini` (as atualizacoes nao apagam):
 
 ```ini
 [Update]
@@ -42,10 +39,8 @@ Repo=usuario/repositorio
 Auto=true
 
 [Dev]
-Path=C:\Users\Douglas\Documents\Dev\Archiva Plugin
+Path=C:\caminho\do\projeto
 ```
-
-`[Dev] Path` faz o carregador usar a pasta local (sem baixar do GitHub). Apague a linha para voltar ao normal.
 
 ## Roadmap
 

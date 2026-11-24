@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage
+    SchemaVersion="1.0"
+    AutodeskProduct="3ds Max"
+    ProductType="Application"
+    Name="Archiva Import"
+    Description="Importa 3DS do SketchUp e roda o fluxo completo (collapse, weld, attach, detach by ID, UVW)."
+    AppVersion="1.0.0"
+    Author="Douglas"
+    UpgradeCode="{CDB1566E-C382-4FA8-BBFE-BCEBD0A1CC4A}">
+    <CompanyDetails Name="Archiva" />
+    <Components Description="post-start-up scripts parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2024" SeriesMax="2099" />
+        <ComponentEntry ModuleName="./post_startup_scripts/ArchivaImport_Loader.ms" />
+    </Components>
+</ApplicationPackage>
