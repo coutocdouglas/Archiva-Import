@@ -31,7 +31,7 @@ Source: "PackageContents.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\assets\icons\archiva.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\install\ArchivaImport_Loader.ms"; DestDir: "{app}\post_startup_scripts"; Flags: ignoreversion
 ; copia do plugin ja dentro do instalador (funciona mesmo sem internet; o GitHub so entrega versoes mais novas)
-Source: "..\src\*"; DestDir: "{app}\plugin\src"; Flags: ignoreversion recursesubdirs
+Source: "..\src\*"; DestDir: "{app}\plugin\src"; Excludes: "__pycache__,*.pyc"; Flags: ignoreversion recursesubdirs
 Source: "..\assets\*"; DestDir: "{app}\plugin\assets"; Flags: ignoreversion recursesubdirs
 Source: "..\version.txt"; DestDir: "{app}\plugin"; Flags: ignoreversion
 
