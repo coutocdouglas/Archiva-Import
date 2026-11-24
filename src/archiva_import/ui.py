@@ -303,7 +303,7 @@ class MainWindow(QW.QWidget):
 
         # categoria: importacao
         sec = Section(tr("Importa^c^ao").replace("^c", "ç"), opened[0] == "1")
-        self.btn_import = QW.QPushButton(tr("Importar .3DS..."))
+        self.btn_import = QW.QPushButton("Importar")
         self.btn_import.setProperty("primary", True)
         self.btn_import.setCursor(Qt.PointingHandCursor)
         self.btn_cfg = QW.QPushButton(tr("Configura^c^oes de importa^c^ao..."))
@@ -313,6 +313,7 @@ class MainWindow(QW.QWidget):
         self.log.setFixedHeight(140)
         self.log.setPlaceholderText(tr("O resumo da importa^c^ao aparece aqui."))
         sec.body_lay.addWidget(self.btn_import)
+        self._build_options(sec.body_lay)
         sec.body_lay.addWidget(self.btn_cfg)
         sec.body_lay.addWidget(self.log)
         self._add(root, sec)
@@ -340,6 +341,54 @@ class MainWindow(QW.QWidget):
         self.btn_cfg.clicked.connect(self.open_settings)
         self.btn_update.clicked.connect(self.do_update)
         self.setMinimumWidth(360)
+
+    def _build_options(self, lay):
+        """Botoes Grupo / Layer / Lock: ligam as opcoes que valem para a proxima importacao."""
+        specs = [
+            ("Grupo", "Group", "Agrupa tudo o que for importado e dá o nome escolhido ao grupo."),
+            ("Layer", "Layer", "Coloca o que for importado numa layer com o nome escolhido (cria se não existir)."),
+            ("Lock", "Lock", "Trava Move, Rotate e Scale em X, Y e Z (Hierarchy > Link Info)."),
+        ]
+        row = QW.QHBoxLayout()
+        row.setSpacing(8)
+        self.chips = {}
+        for text, key, tip in specs:
+            b = QW.QPushButton(text)
+            b.setCheckable(True)
+            b.setProperty("chip", True)
+            b.setCursor(Qt.PointingHandCursor)
+            b.setToolTip(tip)
+            b.setChecked(self.cfg.get_bool("Options", key))
+            b.toggled.connect(lambda on, k=key: self._option_toggled(k, on))
+            self.chips[key] = b
+            row.addWidget(b)
+        lay.addLayout(row)
+
+        self.name_edits = {}
+        self.name_rows = {}
+        for key, label, ph in (("Group", "Grupo", "Nome do grupo"), ("Layer", "Layer", "Nome da layer")):
+            holder = QW.QWidget()
+            hl = QW.QHBoxLayout(holder)
+            hl.setContentsMargins(0, 0, 0, 0)
+            hl.setSpacing(10)
+            lab = QW.QLabel(label)
+            lab.setProperty("muted", True)
+            lab.setFixedWidth(44)
+            le = QW.QLineEdit(self.cfg.get("Options", key + "Name"))
+            le.setPlaceholderText(ph)
+            le.setToolTip(ph)
+            le.textEdited.connect(lambda t, k=key: self.cfg.set("Options", k + "Name", t))
+            hl.addWidget(lab)
+            hl.addWidget(le, 1)
+            holder.setVisible(self.chips[key].isChecked())
+            self.name_edits[key] = le
+            self.name_rows[key] = holder
+            lay.addWidget(holder)
+
+    def _option_toggled(self, key, on):
+        self.cfg.set("Options", key, bool(on))
+        if key in self.name_rows:
+            self.name_rows[key].setVisible(bool(on))
 
     def _add(self, root, sec):
         root.addWidget(sec)

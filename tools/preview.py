@@ -27,6 +27,13 @@ win.show()
 app.processEvents()
 win.grab().save(str(out / "1_principal.png"))
 
+for b in win.chips.values():
+    b.setChecked(True)
+win.name_edits["Group"].setText("Casa_Cliente")
+win.name_edits["Layer"].setText("Modelo SketchUp")
+app.processEvents()
+win.grab().save(str(out / "1b_opcoes_ligadas.png"))
+
 win.log.setPlainText(ui.tr("Importados: 128 objetos\nCollapse: 128 objetos\nWeld: threshold 0.001\nAttach: 1 objeto (48210 faces)\nDetach by ID: 14 objetos\nUVW aplicado\nFinal: Editable Poly e pivo na base\nConclu^ido em 3.4 s"))
 for s in win.sections:
     s.header.setChecked(True)

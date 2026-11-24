@@ -27,6 +27,11 @@ DEFAULTS = {
     ("Finish", "ConvertToPoly"): "true",
     ("Finish", "Pivot"): "true",
     ("Finish", "PivotMode"): "1",
+    ("Options", "Group"): "false",
+    ("Options", "GroupName"): "Importado",
+    ("Options", "Layer"): "false",
+    ("Options", "LayerName"): "Importado",
+    ("Options", "Lock"): "false",
     ("Ui", "SecOpen"): "100",
 }
 _ENC = "cp1252"
@@ -97,5 +102,5 @@ class Config:
     def reset_params(self):
         """Volta os ajustes de cada etapa ao padrao (mantem quais etapas estao ligadas)."""
         for (s, k), v in DEFAULTS.items():
-            if s not in ("Steps", "Ui"):
+            if s not in ("Steps", "Ui", "Options"):
                 self.set(s, k, v)

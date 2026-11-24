@@ -45,6 +45,13 @@ struct MatizImportCore
 	finishPivot = true,
 	pivotMode = 1,         -- 1 base do conjunto (mesmo ponto p/ todos), 2 base de cada objeto
 
+	-- ===== organizacao do que foi importado (botoes Grupo / Layer / Lock) =====
+	doGroup = false,
+	groupName = "Importado",
+	doLayer = false,
+	layerName = "Importado",
+	doLock = false,
+
 	uvwTypeCodes = #(4, 0, 1, 2, 3, 5),
 
 	fn resetDefaults =
@@ -108,6 +115,14 @@ struct MatizImportCore
 		finishPoly = getBool "Finish" "ConvertToPoly" true
 		finishPivot = getBool "Finish" "Pivot" true
 		pivotMode = (getNum "Finish" "PivotMode" 1) as integer
+
+		doGroup = getBool "Options" "Group" false
+		doLayer = getBool "Options" "Layer" false
+		doLock = getBool "Options" "Lock" false
+		groupName = getIniSetting (cfgPath()) "Options" "GroupName"
+		layerName = getIniSetting (cfgPath()) "Options" "LayerName"
+		if groupName == "" do groupName = "Importado"
+		if layerName == "" do layerName = "Importado"
 	),
 
 	fn saveConfig =
@@ -135,6 +150,11 @@ struct MatizImportCore
 		setIniSetting f "Finish" "ConvertToPoly" (finishPoly as string)
 		setIniSetting f "Finish" "Pivot" (finishPivot as string)
 		setIniSetting f "Finish" "PivotMode" (pivotMode as string)
+		setIniSetting f "Options" "Group" (doGroup as string)
+		setIniSetting f "Options" "GroupName" groupName
+		setIniSetting f "Options" "Layer" (doLayer as string)
+		setIniSetting f "Options" "LayerName" layerName
+		setIniSetting f "Options" "Lock" (doLock as string)
 	),
 
 	fn versionText =
@@ -366,6 +386,33 @@ struct MatizImportCore
 		valid
 	),
 
+	-- ===== organizar: Layer -> Grupo -> Lock (nesta ordem) =====
+	fn stepLayer nodes nm =
+	(
+		local lay = LayerManager.getLayerFromName nm
+		if lay == undefined do lay = LayerManager.newLayerFromName nm
+		if lay != undefined do
+		(
+			for o in nodes where isValidNode o do lay.addNode o
+		)
+		lay
+	),
+
+	fn stepGroup nodes nm =
+	(
+		local valid = for o in nodes where isValidNode o collect o
+		if valid.count == 0 do return undefined
+		local nm2 = freeName nm undefined
+		group valid name:nm2
+		getNodeByName nm2
+	),
+
+	-- Hierarchy > Link Info > Locks: trava Move, Rotate e Scale em X, Y e Z
+	fn stepLock nodes =
+	(
+		for o in nodes where isValidNode o do setTransformLockFlags o #all
+	),
+
 	-- ===== pipeline completo =====
 	fn run path =
 	(
@@ -420,6 +467,38 @@ struct MatizImportCore
 						format "Final: Editable Poly e pivo na base\n" to:ss
 					)
 				)
+			)
+		)
+
+		-- opcoes de organizacao (botoes Grupo / Layer / Lock)
+		if (doLayer or doGroup or doLock) and objs.count > 0 do
+		(
+			with undo off
+			(
+				local nodes = for o in objs where isValidNode o collect o
+				local lay = undefined
+				local head = undefined
+				if doLayer and nodes.count > 0 do
+				(
+					lay = stepLayer nodes layerName
+					if lay != undefined do format "Layer: %\n" layerName to:ss
+				)
+				if doGroup and nodes.count > 0 do
+				(
+					head = stepGroup nodes groupName
+					if head != undefined then
+					(
+						if lay != undefined do lay.addNode head
+						format "Grupo: % (% objetos)\n" head.name nodes.count to:ss
+					)
+				)
+				if doLock and nodes.count > 0 do
+				(
+					stepLock nodes
+					if head != undefined do stepLock #(head)
+					format "Lock: Move/Rotate/Scale travados (Link Info)\n" to:ss
+				)
+				if head != undefined do objs = #(head)
 			)
 		)
 

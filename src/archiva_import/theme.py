@@ -150,6 +150,8 @@ QPushButton[primary="true"] {{ background: qlineargradient(x1:0,y1:0,x2:0,y2:1, 
     color: {BTN_TEXT.name()}; border: none; padding: 11px 18px; font-size: 13px; }}
 QPushButton[primary="true"]:hover {{ background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #f6eddd, stop:1 #e5d6bd); }}
 QPushButton[primary="true"]:pressed {{ background: {BTN_BOTTOM.name()}; }}
+QPushButton[chip="true"] {{ padding: 6px 8px; font-size: 12px; }}
+QPushButton[chip="true"]:checked {{ background: rgba(227,207,169,0.20); border: 1px solid {HILITE.name()}; color: #fff6e8; }}
 QPushButton[flat="true"] {{ background: transparent; border: none; color: {l}; padding: 4px 6px; }}
 QPushButton[flat="true"]:hover {{ color: #f1dcb8; }}
 QScrollArea {{ background: transparent; border: none; }}
