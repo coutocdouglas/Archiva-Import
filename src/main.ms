@@ -429,8 +429,14 @@ struct MatizImportCore
 			try (max zoomext sel all) catch ()
 		)
 		completeRedraw()
-		format "Concluido em % s\n" ((timeStamp() - t0) / 1000.0) to:ss
+		format "Conclu^ido em % s\n" ((timeStamp() - t0) / 1000.0) to:ss
 		ss as string
+	),
+
+	fn openSettings =
+	(
+		try (destroyDialog ArchivaSettingsRollout) catch ()
+		createDialog ArchivaSettingsRollout bgcolor:(color 22 18 15) fgcolor:(color 241 233 220) style:#(#style_titlebar, #style_sysmenu, #style_toolwindow)
 	),
 
 	fn openUI =
@@ -439,7 +445,7 @@ struct MatizImportCore
 		try (destroyDialog MatizImportRollout) catch ()
 		loadConfig()
 		installIcons()
-		createDialog MatizImportRollout style:#(#style_titlebar, #style_sysmenu, #style_toolwindow)
+		createDialog MatizImportRollout bgcolor:(color 22 18 15) fgcolor:(color 241 233 220) style:#(#style_titlebar, #style_sysmenu, #style_toolwindow)
 	)
 )
 
@@ -447,10 +453,144 @@ MatizImport = MatizImportCore()
 MatizImport.loadConfig()
 
 -- ============================================================
--- Janela de configuracoes
+-- Estilo visual (mesma linha do Archiva: grafite quente + pergaminho)
 -- ============================================================
-rollout ArchivaSettingsRollout "Archiva Import - Configuracoes" width:310
+global ArchivaUI
+
+-- marcadores: ^c=c cedilha ^1=C cedilha ^a=a til ^2=A til ^o=o til ^e=e agudo ^i=i agudo ^u=u agudo
+fn ArchivaTr s =
 (
+	local C = dotNetClass "System.Char"
+	local pairs = #(#("^c", 231), #("^1", 199), #("^a", 227), #("^2", 195), #("^o", 245), #("^e", 233), #("^i", 237), #("^u", 250))
+	local r = s
+	for p in pairs do r = substituteString r p[1] (C.ConvertFromUtf32 p[2])
+	r
+)
+
+struct ArchivaUICore
+(
+	fontColl = undefined,
+	fontTried = false,
+
+	fn col r g b = ((dotNetClass "System.Drawing.Color").FromArgb r g b),
+
+	fn ensureFont =
+	(
+		if not fontTried do
+		(
+			fontTried = true
+			try
+			(
+				local p = MatizImportRoot + "..\\assets\\fonts\\ZTNature-SemiBold.ttf"
+				if doesFileExist p do
+				(
+					fontColl = dotNetObject "System.Drawing.Text.PrivateFontCollection"
+					fontColl.AddFontFile p
+				)
+			)
+			catch (fontColl = undefined)
+		)
+	),
+
+	fn font size =
+	(
+		ensureFont()
+		local f = undefined
+		local sz = size as float
+		try (if fontColl != undefined do f = dotNetObject "System.Drawing.Font" (fontColl.Families.GetValue 0) sz) catch ()
+		if f == undefined do f = dotNetObject "System.Drawing.Font" "Segoe UI Semibold" sz
+		f
+	),
+
+	fn styleButton b kind txt =
+	(
+		b.FlatStyle = (dotNetClass "System.Windows.Forms.FlatStyle").Flat
+		b.UseVisualStyleBackColor = false
+		b.TabStop = false
+		b.Cursor = (dotNetClass "System.Windows.Forms.Cursors").Hand
+		b.Text = ArchivaTr txt
+		case kind of
+		(
+			#primary:
+			(
+				b.Font = font 10.5
+				b.BackColor = col 240 230 212
+				b.ForeColor = col 38 21 12
+				b.FlatAppearance.BorderSize = 0
+				b.FlatAppearance.MouseOverBackColor = col 247 238 222
+				b.FlatAppearance.MouseDownBackColor = col 221 205 178
+			)
+			#secondary:
+			(
+				b.Font = font 9.5
+				b.BackColor = col 36 31 27
+				b.ForeColor = col 241 233 220
+				b.FlatAppearance.BorderSize = 1
+				b.FlatAppearance.BorderColor = col 58 50 43
+				b.FlatAppearance.MouseOverBackColor = col 50 43 37
+				b.FlatAppearance.MouseDownBackColor = col 30 25 21
+			)
+			#header:
+			(
+				b.Font = font 9.5
+				b.BackColor = col 42 34 28
+				b.ForeColor = col 227 207 169
+				b.TextAlign = (dotNetClass "System.Drawing.ContentAlignment").MiddleLeft
+				b.Padding = dotNetObject "System.Windows.Forms.Padding" 10 0 0 0
+				b.FlatAppearance.BorderSize = 0
+				b.FlatAppearance.MouseOverBackColor = col 58 44 34
+				b.FlatAppearance.MouseDownBackColor = col 34 27 22
+			)
+			#link:
+			(
+				b.Font = font 9
+				b.BackColor = col 22 18 15
+				b.ForeColor = col 216 194 156
+				b.FlatAppearance.BorderSize = 0
+				b.FlatAppearance.MouseOverBackColor = col 22 18 15
+				b.FlatAppearance.MouseDownBackColor = col 22 18 15
+			)
+		)
+	),
+
+	fn styleLabel l txt size r g b =
+	(
+		l.AutoSize = false
+		l.Text = ArchivaTr txt
+		l.Font = font size
+		l.ForeColor = col r g b
+		l.BackColor = col 22 18 15
+	),
+
+	fn styleLog tb =
+	(
+		tb.Multiline = true
+		tb.ReadOnly = true
+		tb.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
+		tb.ScrollBars = (dotNetClass "System.Windows.Forms.ScrollBars").Vertical
+		tb.BackColor = col 29 24 20
+		tb.ForeColor = col 241 233 220
+		tb.Font = font 9
+		tb.TabStop = false
+	)
+)
+
+ArchivaUI = ArchivaUICore()
+
+-- ============================================================
+-- Janela de configuracoes (importacao)
+-- ============================================================
+rollout ArchivaSettingsRollout "Archiva Import - Configuracoes de importacao" width:310
+(
+	group "Etapas ativas"
+	(
+		checkbox chkCollapse "Collapse (Editable Poly)"
+		checkbox chkWeld "Weld"
+		checkbox chkAttach "Attach (all in one mesh)"
+		checkbox chkDetach "Detach by ID"
+		checkbox chkUvw "UVW Map"
+		checkbox chkFinish "Etapa final (Editable Poly + pivo)"
+	)
 	group "Collapse"
 	(
 		label lblCol "Sem ajustes (converte tudo para Editable Poly)." align:#left
@@ -492,6 +632,12 @@ rollout ArchivaSettingsRollout "Archiva Import - Configuracoes" width:310
 	fn refresh =
 	(
 		local m = MatizImport
+		chkCollapse.checked = m.doCollapse
+		chkWeld.checked = m.doWeld
+		chkAttach.checked = m.doAttach
+		chkDetach.checked = m.doDetach
+		chkUvw.checked = m.doUvw
+		chkFinish.checked = m.doFinish
 		spnWeld.value = m.weldThreshold
 		spnChunk.value = m.chunkSize
 		ddNaming.selection = m.namingMode
@@ -510,6 +656,13 @@ rollout ArchivaSettingsRollout "Archiva Import - Configuracoes" width:310
 	)
 
 	on ArchivaSettingsRollout open do refresh()
+
+	on chkCollapse changed v do (MatizImport.doCollapse = v; MatizImport.saveConfig())
+	on chkWeld changed v do (MatizImport.doWeld = v; MatizImport.saveConfig())
+	on chkAttach changed v do (MatizImport.doAttach = v; MatizImport.saveConfig())
+	on chkDetach changed v do (MatizImport.doDetach = v; MatizImport.saveConfig())
+	on chkUvw changed v do (MatizImport.doUvw = v; MatizImport.saveConfig())
+	on chkFinish changed v do (MatizImport.doFinish = v; MatizImport.saveConfig())
 
 	on spnWeld changed v do (MatizImport.weldThreshold = v; MatizImport.saveConfig())
 	on spnChunk changed v do (MatizImport.chunkSize = v; MatizImport.saveConfig())
@@ -538,74 +691,144 @@ rollout ArchivaSettingsRollout "Archiva Import - Configuracoes" width:310
 )
 
 -- ============================================================
--- Janela principal
+-- Janela principal: categorias recolhiveis (Importacao / Texturas / Luzes)
 -- ============================================================
-rollout MatizImportRollout "Archiva Import" width:250
+rollout MatizImportRollout "Archiva Import" width:300
 (
-	button btnImport "IMPORTAR .3DS..." width:230 height:34 align:#center
-	group "Etapas"
+	local secOpen = #(true, false, false)
+
+	dotNetControl pbLogo "System.Windows.Forms.PictureBox" pos:[14, 10] width:34 height:34
+	dotNetControl lblTitle "System.Windows.Forms.Label" pos:[56, 9] width:230 height:22
+	dotNetControl lblVer "System.Windows.Forms.Label" pos:[56, 30] width:230 height:16
+
+	-- categoria 1: importacao
+	dotNetControl hdrImp "System.Windows.Forms.Button" pos:[12, 60] width:276 height:32
+	dotNetControl btnImport "System.Windows.Forms.Button" pos:[12, 100] width:276 height:38
+	dotNetControl btnCfg "System.Windows.Forms.Button" pos:[12, 140] width:276 height:32
+	dotNetControl tbLog "System.Windows.Forms.TextBox" pos:[12, 180] width:276 height:120
+
+	-- categoria 2: texturas
+	dotNetControl hdrTex "System.Windows.Forms.Button" pos:[12, 310] width:276 height:32
+	dotNetControl lblTex "System.Windows.Forms.Label" pos:[12, 350] width:276 height:48
+
+	-- categoria 3: luzes
+	dotNetControl hdrLuz "System.Windows.Forms.Button" pos:[12, 400] width:276 height:32
+	dotNetControl lblLuz "System.Windows.Forms.Label" pos:[12, 440] width:276 height:24
+
+	dotNetControl btnUpdate "System.Windows.Forms.Button" pos:[12, 470] width:276 height:26
+
+	fn loadOpenState =
 	(
-		checkbox chkCollapse "Collapse (Editable Poly)"
-		checkbox chkWeld "Weld"
-		checkbox chkAttach "Attach (all in one mesh)"
-		checkbox chkDetach "Detach by ID"
-		checkbox chkUvw "UVW Map"
-		checkbox chkFinish "Final: Editable Poly + pivo na base"
+		local s = getIniSetting (MatizImport.cfgPath()) "Ui" "SecOpen"
+		if s.count == 3 do
+		(
+			for i = 1 to 3 do secOpen[i] = ((substring s i 1) == "1")
+		)
 	)
-	button btnSettings "Configuracoes..." width:230 align:#center
-	edittext edtLog "" readOnly:true height:90 width:236 align:#center
-	button btnUpdate "Verificar atualizacoes" width:230 align:#center
-	label lblVer "" align:#center
+
+	fn saveOpenState =
+	(
+		local s = ""
+		for i = 1 to 3 do s += (if secOpen[i] then "1" else "0")
+		setIniSetting (MatizImport.cfgPath()) "Ui" "SecOpen" s
+	)
+
+	fn relayout =
+	(
+		local hdr = #(hdrImp, hdrTex, hdrLuz)
+		local cont = #(#(btnImport, btnCfg, tbLog), #(lblTex), #(lblLuz))
+		local titles = #("IMPORTA^1^2O", "TEXTURAS", "LUZES")
+		local y = 58
+		for s = 1 to 3 do
+		(
+			local h = hdr[s]
+			h.Left = 12
+			h.Top = y
+			h.Text = ArchivaTr ((if secOpen[s] then "-   " else "+   ") + titles[s])
+			y += h.Height + 6
+			for c in cont[s] do
+			(
+				c.Visible = secOpen[s]
+				if secOpen[s] do
+				(
+					c.Left = 12
+					c.Top = y
+					y += c.Height + 6
+				)
+			)
+			y += 4
+		)
+		btnUpdate.Left = 12
+		btnUpdate.Top = y
+		y += btnUpdate.Height + 8
+		MatizImportRollout.height = y
+	)
 
 	on MatizImportRollout open do
 	(
-		chkCollapse.checked = MatizImport.doCollapse
-		chkWeld.checked = MatizImport.doWeld
-		chkAttach.checked = MatizImport.doAttach
-		chkDetach.checked = MatizImport.doDetach
-		chkUvw.checked = MatizImport.doUvw
-		chkFinish.checked = MatizImport.doFinish
-		lblVer.caption = "v" + MatizImport.versionText()
+		-- logo + titulo
+		try
+		(
+			local lp = MatizImportRoot + "..\\assets\\brand\\logo64.png"
+			if doesFileExist lp do
+			(
+				pbLogo.Image = (dotNetClass "System.Drawing.Image").FromFile lp
+				pbLogo.SizeMode = (dotNetClass "System.Windows.Forms.PictureBoxSizeMode").Zoom
+			)
+		)
+		catch ()
+		pbLogo.BackColor = ArchivaUI.col 22 18 15
+		ArchivaUI.styleLabel lblTitle "Archiva Import" 14 241 233 220
+		ArchivaUI.styleLabel lblVer ("v" + MatizImport.versionText() + "  -  importa^c^ao do SketchUp") 8.5 168 156 140
+
+		ArchivaUI.styleButton hdrImp #header ""
+		ArchivaUI.styleButton hdrTex #header ""
+		ArchivaUI.styleButton hdrLuz #header ""
+		ArchivaUI.styleButton btnImport #primary "IMPORTAR .3DS..."
+		ArchivaUI.styleButton btnCfg #secondary "Configura^c^oes de importa^c^ao..."
+		ArchivaUI.styleLog tbLog
+		ArchivaUI.styleLabel lblTex "Em breve: trocar os materiais do SketchUp pelos da sua biblioteca, pelo nome." 9 168 156 140
+		ArchivaUI.styleLabel lblLuz "Em breve." 9 168 156 140
+		ArchivaUI.styleButton btnUpdate #link "Verificar atualiza^c^oes"
+
+		loadOpenState()
+		relayout()
 	)
 
-	on chkCollapse changed v do (MatizImport.doCollapse = v; MatizImport.saveConfig())
-	on chkWeld changed v do (MatizImport.doWeld = v; MatizImport.saveConfig())
-	on chkAttach changed v do (MatizImport.doAttach = v; MatizImport.saveConfig())
-	on chkDetach changed v do (MatizImport.doDetach = v; MatizImport.saveConfig())
-	on chkUvw changed v do (MatizImport.doUvw = v; MatizImport.saveConfig())
-	on chkFinish changed v do (MatizImport.doFinish = v; MatizImport.saveConfig())
+	on hdrImp Click s e do (secOpen[1] = not secOpen[1]; saveOpenState(); relayout())
+	on hdrTex Click s e do (secOpen[2] = not secOpen[2]; saveOpenState(); relayout())
+	on hdrLuz Click s e do (secOpen[3] = not secOpen[3]; saveOpenState(); relayout())
 
-	on btnSettings pressed do
-	(
-		try (destroyDialog ArchivaSettingsRollout) catch ()
-		createDialog ArchivaSettingsRollout style:#(#style_titlebar, #style_sysmenu, #style_toolwindow)
-	)
+	on btnCfg Click s e do MatizImport.openSettings()
 
-	on btnImport pressed do
+	on btnImport Click s e do
 	(
 		local f = getOpenFileName caption:"Importar arquivo 3DS" types:"3DS (*.3ds)|*.3ds|Todos (*.*)|*.*|"
 		if f != undefined do
 		(
-			edtLog.text = "Importando..."
+			MatizImport.loadConfig()
+			tbLog.Text = "Importando..."
+			tbLog.Refresh()
 			local rep = MatizImport.run f
-			edtLog.text = substituteString rep "\n" "\r\n"
+			tbLog.Text = ArchivaTr (substituteString rep "\n" "\r\n")
 		)
 	)
 
-	on btnUpdate pressed do
+	on btnUpdate Click s e do
 	(
 		if MatizLoader == undefined then
-			edtLog.text = "Carregador nao encontrado. Reinstale o Archiva Import."
+			tbLog.Text = "Carregador nao encontrado. Reinstale o Archiva Import."
 		else
 		(
-			edtLog.text = "Verificando..."
+			tbLog.Text = "Verificando..."
+			tbLog.Refresh()
 			local msg = MatizLoader.checkAndUpdate()
 			if MatizLoader.updated do
 			(
 				MatizLoader.loadMain()
 				msg += " Reabra o plugin para usar a nova versao."
 			)
-			edtLog.text = msg
+			tbLog.Text = msg
 		)
 	)
 )

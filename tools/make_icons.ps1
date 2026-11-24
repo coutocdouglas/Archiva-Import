@@ -1,37 +1,40 @@
-# Gera o icone PLACEHOLDER do Archiva Import (letra "A" branca em fundo azul-petroleo).
-# Para trocar pelo icone definitivo, substitua os arquivos em assets\icons com os mesmos nomes.
+# Gera os icones do Archiva Import a partir do icone do Archiva (assets\brand\icone.png).
+# - ArchivaImport_16i.bmp / _24i.bmp : botao do Max
+# - logo64.png                       : logo no topo da janela
+# O arquivo archiva.ico (instalador) e o mesmo icone.ico do Archiva.
 Add-Type -AssemblyName System.Drawing
-$out = Join-Path $PSScriptRoot '..\assets\icons'
-New-Item -ItemType Directory -Force -Path $out | Out-Null
+$root = Join-Path $PSScriptRoot '..\assets'
+$src = [System.Drawing.Image]::FromFile((Resolve-Path (Join-Path $root 'brand\icone.png')))
 
-function New-Icon([int]$size) {
-    $bmp = New-Object System.Drawing.Bitmap($size, $size, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+function Resize-Icon([int]$size, [double]$inset) {
+    $bmp = New-Object System.Drawing.Bitmap($size, $size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $g.InterpolationMode = 'HighQualityBicubic'
     $g.SmoothingMode = 'AntiAlias'
-    $g.TextRenderingHint = 'AntiAliasGridFit'
-    $g.Clear([System.Drawing.Color]::FromArgb(31, 111, 120))
-    $fontSize = [single]($size * 0.62)
-    $font = New-Object System.Drawing.Font('Segoe UI', $fontSize, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
-    $fmt = New-Object System.Drawing.StringFormat
-    $fmt.Alignment = 'Center'; $fmt.LineAlignment = 'Center'
-    $rect = New-Object System.Drawing.RectangleF(0, 0, $size, $size)
-    $g.DrawString('A', $font, [System.Drawing.Brushes]::White, $rect, $fmt)
+    $g.PixelOffsetMode = 'HighQuality'
+    $g.Clear([System.Drawing.Color]::Transparent)
+    $cx = [int]($src.Width * $inset); $cy = [int]($src.Height * $inset)
+    $srcRect = New-Object System.Drawing.Rectangle($cx, $cy, ($src.Width - 2 * $cx), ($src.Height - 2 * $cy))
+    $dst = New-Object System.Drawing.Rectangle(0, 0, $size, $size)
+    $g.DrawImage($src, $dst, $srcRect, [System.Drawing.GraphicsUnit]::Pixel)
     $g.Dispose()
     return $bmp
 }
 
+# botao do Max: sem cantos transparentes (BMP nao tem transparencia), por isso o recorte interno
 foreach ($s in 16, 24) {
-    $b = New-Icon $s
-    $b.Save((Join-Path $out ("ArchivaImport_{0}i.bmp" -f $s)), [System.Drawing.Imaging.ImageFormat]::Bmp)
-    $b.Dispose()
+    $b = Resize-Icon $s 0.12
+    $flat = New-Object System.Drawing.Bitmap($s, $s, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+    $g = [System.Drawing.Graphics]::FromImage($flat)
+    $g.DrawImage($b, 0, 0)
+    $g.Dispose()
+    $flat.Save((Join-Path $root ("icons\ArchivaImport_{0}i.bmp" -f $s)), [System.Drawing.Imaging.ImageFormat]::Bmp)
+    $flat.Dispose(); $b.Dispose()
 }
 
-# .ico para o instalador
-$big = New-Icon 48
-$hicon = $big.GetHicon()
-$icon = [System.Drawing.Icon]::FromHandle($hicon)
-$fs = [System.IO.File]::Create((Join-Path $out 'archiva.ico'))
-$icon.Save($fs)
-$fs.Close()
-$big.Dispose()
+# logo da janela: mantem os cantos arredondados (PNG com transparencia)
+$l = Resize-Icon 64 0.0
+$l.Save((Join-Path $root 'brand\logo64.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+$l.Dispose()
+$src.Dispose()
 Write-Output 'ok'
