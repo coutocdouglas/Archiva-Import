@@ -16,6 +16,8 @@ OutputBaseFilename=ArchivaImport_Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\assets\icons\archiva.ico
+UninstallDisplayIcon={app}\archiva.ico
 UninstallDisplayName=Archiva Import (plugin do 3ds Max)
 
 [Languages]
@@ -26,6 +28,7 @@ WelcomeLabel2=Este instalador coloca o plugin Archiva Import no 3ds Max (versao 
 
 [Files]
 Source: "PackageContents.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\icons\archiva.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\install\ArchivaImport_Loader.ms"; DestDir: "{app}\post_startup_scripts"; Flags: ignoreversion
 
 [Code]

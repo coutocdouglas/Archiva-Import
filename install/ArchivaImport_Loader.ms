@@ -184,6 +184,7 @@ macroScript Archiva_Import
 	category:"Archiva"
 	toolTip:"Archiva Import"
 	buttonText:"Archiva Import"
+	icon:#("ArchivaImport", 1)
 (
 	on execute do
 	(
